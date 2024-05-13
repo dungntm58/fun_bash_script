@@ -55,7 +55,7 @@ while IFS= read -r line; do
     if git ls-remote --heads origin "$branch_name" >/dev/null 2>&1; then
       # Checkout the existing branch
       echo "Branch $branch_name already exists locally. Switching..."
-      git checkout $branch_name
+      git checkout $branch_name || git pull
     else
       echo "Branch $branch_name does not exist on remote for $repo_name."
     fi
