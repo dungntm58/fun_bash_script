@@ -242,33 +242,43 @@ EOF
 
     print_message "$GREEN" ".bash_profile configured successfully."
   fi
+
+  source "$HOME/.bash_profile"
 }
 
 # Function to set up SSH key for GitHub
 setup_ssh_key() {
-  print_message "$BLUE" "Checking for existing SSH key..."
+  print_message "$BLUE" "Checking for SSH key setup..."
+
+  # Ask for key name with default option
+  read -p "Enter a name for your SSH key (default: id_ed25519): " key_name
+  key_name=${key_name:-id_ed25519}
+
+  # Set key paths based on name
+  key_path="$HOME/.ssh/$key_name"
+  key_path_pub="$key_path.pub"
 
   # Check if SSH key already exists
-  if [ -f "$HOME/.ssh/id_ed25519" ]; then
-    print_message "$GREEN" "SSH key already exists."
+  if [ -f "$key_path" ]; then
+    print_message "$GREEN" "SSH key '$key_name' already exists."
   else
-    print_message "$YELLOW" "Generating new SSH key..."
+    print_message "$YELLOW" "Generating new SSH key with name '$key_name'..."
 
     # Ask for email
     read -p "Enter your GitHub email address: " github_email
 
     # Generate SSH key
-    ssh-keygen -t ed25519 -C "$github_email" -f "$HOME/.ssh/id_ed25519" -N "" || handle_error "Failed to generate SSH key"
+    ssh-keygen -t ed25519 -C "$github_email" -f "$key_path" -N "" || handle_error "Failed to generate SSH key"
 
     # Start ssh-agent and add key
     eval "$(ssh-agent -s)"
-    ssh-add "$HOME/.ssh/id_ed25519" || handle_error "Failed to add SSH key to agent"
+    ssh-add "$key_path" || handle_error "Failed to add SSH key to agent"
 
     print_message "$GREEN" "SSH key generated successfully."
   fi
 
   # Copy SSH key to clipboard
-  pbcopy < "$HOME/.ssh/id_ed25519.pub"
+  pbcopy < "$key_path_pub"
   print_message "$YELLOW" "Your SSH public key has been copied to the clipboard."
 
   # Prompt user to add key to GitHub
