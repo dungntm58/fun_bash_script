@@ -12,6 +12,7 @@ GREEN="\033[0;32m"
 YELLOW="\033[0;33m"
 BLUE="\033[0;34m"
 NC="\033[0m" # No Color
+WORKSPACE_DIR="workspace"
 
 # Function to print colored messages
 print_message() {
@@ -41,11 +42,8 @@ install_homebrew() {
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || handle_error "Failed to install Homebrew"
 
     # Add Homebrew to PATH if needed
-    if [[ $(uname -m) == "arm64" ]]; then
-      # For Apple Silicon Macs
-      echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> "$HOME/.zprofile"
-      eval "$(/opt/homebrew/bin/brew shellenv)"
-    fi
+    # For Apple Silicon Macs
+    eval "$(/opt/homebrew/bin/brew shellenv)"
 
     print_message "$GREEN" "Homebrew installed successfully."
   fi
@@ -53,6 +51,28 @@ install_homebrew() {
   # Update Homebrew
   print_message "$BLUE" "Updating Homebrew..."
   brew update || handle_error "Failed to update Homebrew"
+}
+
+# Function to setup Finder sidebar
+setup_finder_sidebar() {
+  # Install mysides for Finder sidebar management
+  if command_exists mysides; then
+    print_message "$GREEN" "mysides is already installed."
+  else
+    print_message "$BLUE" "Installing mysides..."
+    brew install mysides || handle_error "Failed to install mysides"
+  fi
+
+  print_message "$BLUE" "Setting up Finder sidebar..."
+
+  # Create workspace directory if it doesn't exist
+  mkdir -p "$HOME/$WORKSPACE_DIR"
+
+  # Add workspace and home to Finder sidebar
+  mysides add workspace "file://$HOME/$WORKSPACE_DIR"
+  mysides add $(whoami) "file://$HOME"
+
+  print_message "$GREEN" "Finder sidebar configured successfully."
 }
 
 # Function to install Python
@@ -81,7 +101,6 @@ install_ruby() {
     # Initialize rbenv
     print_message "$BLUE" "Initializing rbenv..."
     eval "$(rbenv init -)"
-    echo 'eval "$(rbenv init -)"' >> "$HOME/.zprofile"
   fi
 
   # Install latest Ruby version
@@ -109,8 +128,6 @@ install_go() {
 
     # Set up Go environment variables
     mkdir -p "$HOME/go/{bin,src,pkg}"
-    echo 'export GOPATH=$HOME/go' >> "$HOME/.zprofile"
-    echo 'export PATH=$PATH:$GOPATH/bin' >> "$HOME/.zprofile"
   fi
 }
 
@@ -305,6 +322,7 @@ main() {
 
   # Install and configure all tools
   install_homebrew
+  setup_finder_sidebar
   install_oh_my_zsh
   setup_bash_profile
   install_python
