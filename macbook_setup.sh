@@ -322,6 +322,23 @@ install_oh_my_zsh() {
     sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended || handle_error "Failed to install Oh My Zsh"
     print_message "$GREEN" "Oh My Zsh installed successfully."
   fi
+
+  # Check if .zshrc exists, if not create it
+  if [ ! -f "$HOME/.zshrc" ]; then
+    print_message "$YELLOW" "Creating .zshrc file..."
+    touch "$HOME/.zshrc"
+    print_message "$GREEN" ".zshrc file created."
+  fi
+
+  # Check if the source command already exists in .zshrc to avoid duplication
+  if ! grep -q "source \"\$HOME/.bash_profile\"" "$HOME/.zshrc"; then
+    print_message "$YELLOW" "Adding bash_profile source command to .zshrc..."
+    echo '# Source bash_profile to share configurations' >> "$HOME/.zshrc"
+    echo 'source "$HOME/.bash_profile"' >> "$HOME/.zshrc"
+    print_message "$GREEN" "Added bash_profile source command to .zshrc."
+  else
+    print_message "$GREEN" "bash_profile source command already exists in .zshrc."
+  fi
 }
 
 # Function to set up bash profile
@@ -374,10 +391,10 @@ export PATH=$PATH:$HOME/openshift
 export IS_POD_BINARY_CACHE_ENABLED=true
 # export HOMEBREW_NO_INSTALL_CLEANUP=1
 export HOMEBREW_NO_AUTO_UPDATE=1
-source /Users/robert/.docker/init-bash.sh || true # Added by Docker Desktop
+source ${HOME}/.docker/init-bash.sh || true # Added by Docker Desktop
 
 # Added by LM Studio CLI (lms)
-export PATH="$PATH:/Users/robert/.lmstudio/bin"
+export PATH="$PATH:${HOME}/.lmstudio/bin"
 EOF
 
     print_message "$GREEN" ".bash_profile configured successfully."
