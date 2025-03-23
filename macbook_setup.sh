@@ -439,6 +439,47 @@ setup_ssh_key() {
   fi
 }
 
+# Function to install Xcode snippets
+install_xcode_snippets() {
+  print_message "$BLUE" "Setting up Xcode snippets..."
+
+  # Check if Xcode is installed
+  if ! [ -d "/Applications/Xcode.app" ]; then
+    print_message "$YELLOW" "Xcode not found. Snippets will still be installed, but Xcode is required to use them."
+  fi
+
+  # Create Xcode snippets directory if it doesn't exist
+  local snippets_dir="$HOME/Library/Developer/Xcode/UserData/CodeSnippets"
+  mkdir -p "$snippets_dir"
+
+  # Create a temporary directory for the repository
+  local temp_dir=$(mktemp -d)
+
+  print_message "$YELLOW" "Downloading Xcode snippets from GitHub..."
+
+  # Clone the repository
+  git clone https://github.com/dungntm58/Snippet-Xcode.git "$temp_dir" || handle_error "Failed to clone snippets repository"
+
+  # Copy all .codesnippet files to the Xcode snippets directory
+  local snippet_count=0
+  for snippet in "$temp_dir"/*.codesnippet; do
+    if [ -f "$snippet" ]; then
+      cp "$snippet" "$snippets_dir/"
+      snippet_count=$((snippet_count + 1))
+    fi
+  done
+
+  # Clean up the temporary directory
+  rm -rf "$temp_dir"
+
+  if [ $snippet_count -gt 0 ]; then
+    print_message "$GREEN" "Successfully installed $snippet_count Xcode snippets."
+    print_message "$BLUE" "Snippets are available in Xcode's code completion or from the Code Snippet Library (View > Show Library)."
+  else
+    print_message "$YELLOW" "No snippets were found in the repository."
+  fi
+}
+
 # Main function
 main() {
   print_message "$BLUE" "Starting MacBook setup..."
@@ -455,6 +496,7 @@ main() {
   install_better_display
   install_copilot_for_xcode
   setup_ssh_key
+  install_xcode_snippets
 
   print_message "$GREEN" "MacBook setup completed successfully!"
   print_message "$YELLOW" "Note: Some changes may require a terminal restart to take effect."
