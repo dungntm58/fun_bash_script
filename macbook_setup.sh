@@ -75,7 +75,7 @@ setup_finder_sidebar() {
   print_message "$GREEN" "Finder sidebar configured successfully."
 }
 
-# Function to install Python
+# Function to install Python and set up a shared virtual environment
 install_python() {
   print_message "$BLUE" "Checking for Python 3..."
   if command_exists python3; then
@@ -86,6 +86,129 @@ install_python() {
     brew install python || handle_error "Failed to install Python"
     print_message "$GREEN" "Python 3 installed successfully: $(python3 --version)"
   fi
+
+  # Install pipx for isolated application installation
+  print_message "$BLUE" "Checking for pipx..."
+  if command_exists pipx; then
+    print_message "$GREEN" "pipx is already installed."
+  else
+    print_message "$YELLOW" "Installing pipx for Python application management..."
+    brew install pipx || handle_error "Failed to install pipx"
+    pipx ensurepath || handle_error "Failed to add pipx to PATH"
+    print_message "$GREEN" "pipx installed successfully."
+  fi
+
+  # Set up a shared virtual environment
+  print_message "$BLUE" "Setting up shared Python virtual environment..."
+
+  # Create a central directory for the shared virtual environment
+  local venv_dir="$HOME/.venvs/shared_env"
+
+  if [ -d "$venv_dir" ]; then
+    print_message "$GREEN" "Shared virtual environment already exists at $venv_dir"
+  else
+    print_message "$YELLOW" "Creating shared virtual environment at $venv_dir..."
+
+    # Create the virtual environment using python3 -m venv instead of virtualenv
+    mkdir -p "$HOME/.venvs"
+    python3 -m venv "$venv_dir" || handle_error "Failed to create virtual environment"
+
+    # Install basic packages in the virtual environment
+    print_message "$YELLOW" "Installing basic packages in virtual environment..."
+    source "$venv_dir/bin/activate"
+    pip install --upgrade pip || handle_error "Failed to upgrade pip"
+    pip install wheel setuptools || handle_error "Failed to install basic packages"
+    deactivate
+
+    print_message "$GREEN" "Shared virtual environment created successfully."
+  fi
+
+  # Add activation script to bash_profile if not already there
+  if ! grep -q "alias activate_shared_env=" "$HOME/.bash_profile"; then
+    print_message "$YELLOW" "Adding shared environment activation alias to .bash_profile..."
+    echo "alias activate_shared_env='source $venv_dir/bin/activate'" >> "$HOME/.bash_profile"
+  fi
+
+  # Create a helper script to link the shared environment to projects
+  local link_script="$HOME/bin/link_shared_env.sh"
+
+  if [ ! -f "$link_script" ]; then
+    print_message "$YELLOW" "Creating helper script to link shared environment to projects..."
+
+    mkdir -p "$HOME/bin"
+
+    cat << 'EOF' > "$link_script"
+#!/bin/bash
+
+# Script to link the shared Python environment to a project
+# Usage: link_shared_env.sh [project_directory]
+
+SHARED_ENV_DIR="$HOME/.venvs/shared_env"
+PROJECT_DIR="${1:-.}"  # Use current directory if none specified
+
+if [ ! -d "$SHARED_ENV_DIR" ]; then
+  echo "Error: Shared environment not found at $SHARED_ENV_DIR"
+  exit 1
+fi
+
+# Create a symlink to the shared environment
+ln -sf "$SHARED_ENV_DIR" "$PROJECT_DIR/.venv"
+echo "Linked shared Python environment to $PROJECT_DIR"
+echo "Use 'source .venv/bin/activate' in your project to activate it"
+EOF
+
+    chmod +x "$link_script"
+
+    # Add the bin directory to PATH if not already there
+    if ! grep -q "export PATH=\"\$HOME/bin:\$PATH\"" "$HOME/.bash_profile"; then
+      echo 'export PATH="$HOME/bin:$PATH"' >> "$HOME/.bash_profile"
+    fi
+
+    print_message "$GREEN" "Helper script created at $link_script"
+    print_message "$BLUE" "Usage: link_shared_env.sh [project_directory]"
+  fi
+
+  # Create a helper script for installing Python applications with pipx
+  local pipx_script="$HOME/bin/install_py_app.sh"
+
+  if [ ! -f "$pipx_script" ]; then
+    print_message "$YELLOW" "Creating helper script for installing Python applications..."
+
+    cat << 'EOF' > "$pipx_script"
+#!/bin/bash
+
+# Script to install Python applications using pipx
+# Usage: install_py_app.sh <application_name>
+
+if [ -z "$1" ]; then
+  echo "Error: Please provide an application name"
+  echo "Usage: install_py_app.sh <application_name>"
+  exit 1
+fi
+
+APP_NAME="$1"
+
+echo "Installing $APP_NAME using pipx..."
+pipx install "$APP_NAME"
+
+if [ $? -eq 0 ]; then
+  echo "Successfully installed $APP_NAME"
+else
+  echo "Failed to install $APP_NAME"
+  exit 1
+fi
+EOF
+
+    chmod +x "$pipx_script"
+
+    print_message "$GREEN" "Helper script created at $pipx_script"
+    print_message "$BLUE" "Usage: install_py_app.sh <application_name>"
+  fi
+
+  print_message "$GREEN" "Python environment setup complete."
+  print_message "$BLUE" "To activate shared env: activate_shared_env"
+  print_message "$BLUE" "To link to a project: link_shared_env.sh [project_directory]"
+  print_message "$BLUE" "To install Python apps: install_py_app.sh <app_name>"
 }
 
 # Function to install rbenv and Ruby
