@@ -381,7 +381,7 @@ export PATH=$PATH:${HOME}/flutter/bin
 export PATH="$PATH":"$HOME/.pub-cache/bin"
 
 export PATH="/opt/homebrew/bin:$PATH"
-export PATH="${HOME}/.rbenv/versions/$(head -n 1 .rbenv/version)/bin:$PATH"
+export PATH="${HOME}/.rbenv/versions/$(head -n 1 ${HOME}/.rbenv/version)/bin:$PATH"
 
 export GOPATH="${HOME}/go"
 export GOROOT="/usr/local/go"
